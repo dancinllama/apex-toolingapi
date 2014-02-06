@@ -1,118 +1,114 @@
-/**
- * Copyright (c) 2013, Andrew Fawcett
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification, 
- *   are permitted provided that the following conditions are met:
- *
- * - Redistributions of source code must retain the above copyright notice, 
- *      this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *      this list of conditions and the following disclaimer in the documentation 
- *      and/or other materials provided with the distribution.
- * - Neither the name of the Andrew Fawcett, inc nor the names of its contributors 
- *      may be used to endorse or promote products derived from this software without 
- *      specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES 
- *  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
- *  THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- *  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- *  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- *  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-**/
+public class ToolingApi{
 
-/**
- * Simple wrapper around the REST version of the Salesforce Tooling API, 
- *   initially created to dynamically obtain Custom Object and Field Id's
- **/
-public with sharing class ToolingAPI 
-{
-	private String sessionId;
-	
-	public ToolingAPI(String sessionId)
-	{
-		this.sessionId = sessionId;
-	}
-	
-	public ToolingAPI()
-	{
-		this.sessionId = UserInfo.getSessionId();	
-	}
+    public class QueryResult {
+    	public boolean done;
+    	public String entityTypeName;
+    	public Integer size;
+    	public Integer totalSize;
+    	public ApexClassMember[] records;
+    	public String queryLocator;
+    }
 
-	public CustomObjectQueryResult queryCustomObject(String whereClause)
-	{
-		return (CustomObjectQueryResult) 
-			query('Select Id, DeveloperName, NamespacePrefix From CustomObject Where ' + whereClause, 
-					CustomObjectQueryResult.class);
-	}
+ 	//Wish we could use this in a generic way :-/
+    public virtual class Record{
+    	public Id id;
+    	public Attribute attribute;
+    }
 
-	public CustomFieldQueryResult queryCustomField(String whereClause)
-	{
-		return (CustomFieldQueryResult) 
-			query('Select Id, DeveloperName, NamespacePrefix, TableEnumOrId From CustomField Where ' + whereClause, 
-					CustomFieldQueryResult.class);
-	}
-	
-	public class CustomObject
-	{
-		public Id id;
-		public String DeveloperName;
-		public String NamespacePrefix;
-	}
-	
-	public class CustomField
-	{
-		public Id id;
-		public String DeveloperName;
-		public String NamespacePrefix;
-		public String TableEnumOrId;
-	}
-	
-	public class ErrorResponse
-	{
-		public String errorCode;
-		public String message;		
-	}
+    
+    public class ApexClassMember extends Record{
+        //public Attribute   attribute;
+        public String      body;
+        public String      content;
+        public String      contentEntityId;
+        public String      lastSyncDate;
+        public Metadata    metadata;
+        public String      metadataContainerId;
+        public SymbolTable symbolTable;
+    }
 
-	public abstract class QueryResult
-	{
-		public Integer size;
-		public Integer totalSize;
-		public Boolean done;
-	}
-	
-	public class CustomObjectQueryResult extends QueryResult
-	{
-		public List<CustomObject> records;
-	}
-	
-	public class CustomFieldQueryResult extends QueryResult
-	{
-		public List<CustomField> records;
-	}
-	
-	public class ToolingAPIException extends Exception
-	{
-		public ToolingAPIException(List<ErrorResponse> errorResponses)
-		{
-			this(errorResponses[0].errorCode + ' : ' + errorResponses[0].message);
-		}
-	}
-		
-	private Object query(String soql, Type responseType)
-	{
-		Http h = new Http();	    
-	    HttpRequest queryReq = new HttpRequest();
-	    queryReq.setEndpoint(URL.getSalesforceBaseUrl().toExternalForm() + '/services/data/v29.0/tooling/query/?q=' + EncodingUtil.urlEncode(soql, 'UTF-8'));
-	    queryReq.setHeader('Authorization', 'OAuth ' + sessionId);
-	    queryReq.setHeader('Content-Type', 'application/json');
-	    queryReq.setMethod('GET');
-	    HttpResponse queryRes = h.send(queryReq);
-	    if(queryRes.getStatusCode() != 200)
-	    	throw new ToolingAPIException((List<ErrorResponse>) JSON.deserialize(queryRes.getBody(), List<ErrorResponse>.class));
-	    return JSON.deserialize(queryRes.getBody(), responseType);
-	}	
+    public class Attribute {
+        public String type;
+        public String url;
+    }
+
+    public class Metadata {
+        public Integer        apiVersion;
+        public String         fullName;
+        public String         module;
+        public PackageVersion packageVersions;
+        public String         status;
+        public String []      urls;
+    }
+
+    public class PackageVersion {
+        public Integer majorNumber;
+        public Integer minorNumber;
+        public String namespace;
+    }
+
+    public class Parameter {
+        public String name;
+        public String type;
+    }
+
+    public class Position {
+        public Integer column;
+        public Integer line;
+    }
+
+    public class Symbol {
+        public Position location;
+        public String[] modifiers;
+        public String name;
+        public Parameter[] parameters;
+        public Position[] references;
+        public String returnType;
+        public String visibility;
+        public String type;
+    }
+
+    public class SymbolTable {
+        public Symbol               tableDeclaration;
+        public Symbol[]             variables;
+        public SymbolTable[]        externalReferences;
+        public SymbolTable[]        innerClasses;
+        public String               name;
+        public Symbol[]             constructors;
+        public String               key;
+        public Symbol[]             methods;
+        public Symbol[]             properties;
+        public String               id;
+        public String               namespace;
+        public SymbolTable          parentClass;
+    }
+
+    public static QueryResult parse(String json){
+        return (QueryResult) System.JSON.deserialize(json, QueryResult.class);
+    }
+
+    /*public static QueryResult customParseJson(String json){
+    	 JSONParser parser = JSON.createParser(json);
+    	 while (parser.nextToken() != null) {
+        // Start at the array of invoices.
+        if (parser.getCurrentToken() == JSONToken.START_ARRAY) {
+            while (parser.nextToken() != null) {
+                // Advance to the start object marker to
+                //  find next invoice statement object.
+                if (parser.getCurrentToken() == JSONToken.START_OBJECT) {
+                    // Read entire invoice object, including its array of line items.
+                    Invoice inv = (Invoice)parser.readValueAs(Invoice.class);
+                    system.debug('Invoice number: ' + inv.invoiceNumber);
+                    system.debug('Size of list items: ' + inv.lineItems.size());
+                    // For debugging purposes, serialize again to verify what was parsed.
+                    String s = JSON.serialize(inv);
+                    system.debug('Serialized invoice: ' + s);
+
+                    // Skip the child start array and start object markers.
+                    parser.skipChildren();
+                }
+            }
+        }
+    }
+    }*/
 }

@@ -1,129 +1,275 @@
-/**
- * Copyright (c) 2013, Andrew Fawcett
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without modification, 
- *   are permitted provided that the following conditions are met:
- *
- * - Redistributions of source code must retain the above copyright notice, 
- *      this list of conditions and the following disclaimer.
- * - Redistributions in binary form must reproduce the above copyright notice, 
- *      this list of conditions and the following disclaimer in the documentation 
- *      and/or other materials provided with the distribution.
- * - Neither the name of the Andrew Fawcett, inc nor the names of its contributors 
- *      may be used to endorse or promote products derived from this software without 
- *      specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
- *  ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES 
- *  OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL 
- *  THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
- *  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- *  OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- *  OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-**/
-
-/**
- * Some initial tests to get things started!
- **/
-@IsTest
-private class ToolingAPITest 
-{
-	private static String testObjectResponse = 
-		'{' + 
-		  '"size" : 1,' +
-		  '"totalSize" : 1,' +
-		  '"done" : true,' +
-		  '"records" : [ {' +
-		    '"attributes" : {' +
-		      '"type" : "CustomObject",' +
-		      '"url" : "/services/data/v29.0/tooling/sobjects/CustomObject/01IG00000021cXoMAI"' +
-		    '},' +
-		    '"Id" : "01IG00000021cXoMAI",' +
-		    '"DeveloperName" : "Test"' +
-		  '} ],' +
-		  '"queryLocator" : null,' +
-		  '"entityTypeName" : "CustomEntityDefinition"' +
-		'}';
-		
-	private static String testFieldResponse = 
-		'{' + 
-		  '"size" : 1,' + 
-		  '"totalSize" : 1,' + 
-		  '"done" : true,' + 
-		  '"queryLocator" : null,' + 
-		  '"records" : [ {' + 
-		    '"attributes" : {' + 
-		      '"type" : "CustomField",' + 
-		      '"url" : "/services/data/v29.0/tooling/sobjects/CustomField/00NG0000009Y0I9MAK"' +
-		    '},' + 
-		    '"DeveloperName" : "A_Number",' + 
-		    '"Id" : "00NG0000009Y0I9MAK",' + 
-		    '"FullName" : "01IG00000021cXo.A_Number__c",' +
-		    '"TableEnumOrId" : "01IG00000021cXoMAI",' +
-		    '"NamespacePrefix" : null' + 
-		  '} ],' +
-		  '"entityTypeName" : "CustomFieldDefinition"' +
-		'}';	
-		
-	private static String testErrorResponse = 
-		'[ {' + 
-		  '"errorCode" : "INVALID_FIELD",' + 
-		  '"message" : "\nSELECT XDeveloperName,Id, FullName, TableEnumOrId\n       ^\nERROR at Row:1:Column:8\nNo such column \'XDeveloperName\' on entity \'CustomFieldDefinition\'. If you are attempting to use a custom field, be sure to append the \'__c\' after the custom field name. Please reference your WSDL or the describe call for the appropriate names."' +
-		'} ]';	
-			
-	@IsTest
-	public static void testQueryCustomObjects()
-	{
-		Test.setMock(HttpCalloutMock.class, new ToolingAPIMock(testObjectResponse, 200));		
-		ToolingAPI toolingAPI = new ToolingAPI();	
-		ToolingAPI.CustomObjectQueryResult result = 
-			toolingAPI.queryCustomObject('DeveloperName = \'Test\'');
-		System.assertEquals(result.size, 1);
-		System.assertEquals(result.records[0].DeveloperName, 'Test');
-	}
-
-	@IsTest
-	public static void testQueryCustomFields()
-	{
-		Test.setMock(HttpCalloutMock.class, new ToolingAPIMock(testFieldResponse, 200));		
-		ToolingAPI toolingAPI = new ToolingAPI();			
-		ToolingAPI.CustomFieldQueryResult result = 
-			toolingAPI.queryCustomField('TableEnumOrId = \'01IG00000021cXoMAI\'');
-		System.assertEquals(result.size, 1);
-		System.assertEquals(result.records[0].DeveloperName, 'A_Number');
-	}
+@isTest
+private class ToolingRESTApiTest {
 	
-	@IsTest
-	public static void testErrorResponse()
-	{
-		Test.setMock(HttpCalloutMock.class, new ToolingAPIMock(testErrorResponse, 400));		
-		ToolingAPI toolingAPI = new ToolingAPI();			
-		try {
-			ToolingAPI.CustomFieldQueryResult result = 
-				toolingAPI.queryCustomField('TableEnumOrId = \'Account\'');
-			System.assert(true, 'Expected exception');
-		} catch (Exception e) { }	
-	}
-	
-	public class ToolingAPIMock implements HttpCalloutMock 
-	{
-		private String testResponse;
-		private Integer testStatusCode;
-		
-		public ToolingAPIMock(String testResponse, Integer testStatusCode)
-		{
-			this.testResponse = testResponse;
-			this.testStatusCode = testStatusCode;
-		}
-		
-		public HTTPResponse respond(HTTPRequest req) 
-		{		
-			HttpResponse res = new HttpResponse();
-			res.setBody(testResponse);
-			res.setStatusCode(testStatusCode);
-			return res;	
-		}
+	static testmethod void testParse() {
+        String json=        '{'+
+        '    "size": 2,'+
+        '    "totalSize": 2,'+
+        '    "done": true,'+
+        '    "records": [{'+
+        '        "attributes": {'+
+        '            "type": "ApexClassMember",'+
+        '            "url": "url"'+
+        '        },'+
+        '        "Id": "400G00000005IaoIAE",'+
+        '        "Body": "body",'+
+        '        "Content": "content",'+
+        '        "ContentEntityId": "01pG0000003ZjfTIAS",'+
+        '        "LastSyncDate": "2014-01-28T14:51:03.000+0000",'+
+        '        "Metadata": {'+
+        '            "apiVersion": 28.0,'+
+        '            "packageVersions": null,'+
+        '            "status": "Active",'+
+        '            "urls": null,'+
+        '            "module": null,'+
+        '            "fullName": null'+
+        '        },'+
+        '        "MetadataContainerId": "1drG0000000EKF0IAO",'+
+        '        "SymbolTable": {'+
+        '            "tableDeclaration": {'+
+        '                "modifiers": [],'+
+        '                "name": "ContactExt",'+
+        '                "location": {'+
+        '                    "column": 27,'+
+        '                    "line": 1'+
+        '                },'+
+        '                "type": "ContactExt",'+
+        '                "references": []'+
+        '            },'+
+        '            "variables": [{'+
+        '                "modifiers": [],'+
+        '                "name": "stdController",'+
+        '                "location": {'+
+        '                    "column": 52,'+
+        '                    "line": 9'+
+        '                },'+
+        '                "type": "StandardController",'+
+        '                "references": [{'+
+        '                    "column": 30,'+
+        '                    "line": 10'+
+        '                }, {'+
+        '                    "column": 35,'+
+        '                    "line": 11'+
+        '                }]'+
+        '            }],'+
+        '            "externalReferences": [],'+
+        '            "innerClasses": [],'+
+        '            "name": "ContactExt",'+
+        '            "constructors": [{'+
+        '                "parameters": [{'+
+        '                    "name": "stdController",'+
+        '                    "type": "StandardController"'+
+        '                }],'+
+        '                "visibility": "PUBLIC",'+
+        '                "modifiers": [],'+
+        '                "name": "ContactExt",'+
+        '                "location": {'+
+        '                    "column": 12,'+
+        '                    "line": 9'+
+        '                },'+
+        '                "type": null,'+
+        '                "references": []'+
+        '            }],'+
+        '            "key": "01pG0000003ZjfT",'+
+        '            "methods": [{'+
+        '                "returnType": "PageReference",'+
+        '                "parameters": [],'+
+        '                "visibility": "PUBLIC",'+
+        '                "modifiers": [],'+
+        '                "name": "saveContact",'+
+        '                "location": {'+
+        '                    "column": 26,'+
+        '                    "line": 14'+
+        '                },'+
+        '                "type": null,'+
+        '                "references": []'+
+        '            }, {'+
+        '                "returnType": "PageReference",'+
+        '                "parameters": [],'+
+        '                "visibility": "PUBLIC",'+
+        '                "modifiers": [],'+
+        '                "name": "cancelChanges",'+
+        '                "location": {'+
+        '                    "column": 26,'+
+        '                    "line": 19'+
+        '                },'+
+        '                "type": null,'+
+        '                "references": []'+
+        '            }],'+
+        '            "properties": [{'+
+        '                "visibility": "PRIVATE",'+
+        '                "modifiers": [],'+
+        '                "name": "myContact",'+
+        '                "location": {'+
+        '                    "column": 18,'+
+        '                    "line": 3'+
+        '                },'+
+        '                "type": "Contact",'+
+        '                "references": [{'+
+        '                    "column": 14,'+
+        '                    "line": 11'+
+        '                }, {'+
+        '                    "column": 16,'+
+        '                    "line": 15'+
+        '                }]'+
+        '            }, {'+
+        '                "visibility": "PRIVATE",'+
+        '                "modifiers": [],'+
+        '                "name": "stdController",'+
+        '                "location": {'+
+        '                    "column": 42,'+
+        '                    "line": 4'+
+        '                },'+
+        '                "type": "StandardController",'+
+        '                "references": [{'+
+        '                    "column": 14,'+
+        '                    "line": 10'+
+        '                }]'+
+        '            }],'+
+        '            "id": "01pG0000003ZjfT",'+
+        '            "namespace": "timesheet"'+
+        '        }'+
+        '    }, {'+
+        '        "attributes": {'+
+        '            "type": "ApexClassMember",'+
+        '            "url": "url"'+
+        '        },'+
+        '        "Id": "400G00000005IatIAE",'+
+        '        "Body": "body",'+
+        '        "Content": "content",'+
+        '        "ContentEntityId": "01pG0000003ZjfTIAS",'+
+        '        "LastSyncDate": "2014-01-28T14:52:50.000+0000",'+
+        '        "Metadata": {'+
+        '            "apiVersion": 28.0,'+
+        '            "packageVersions": null,'+
+        '            "status": "Active",'+
+        '            "urls": null,'+
+        '            "module": null,'+
+        '            "fullName": null'+
+        '        },'+
+        '        "MetadataContainerId": "1drG0000000EKF5IAO",'+
+        '        "SymbolTable": {'+
+        '            "tableDeclaration": {'+
+        '                "modifiers": [],'+
+        '                "name": "ContactExt",'+
+        '                "location": {'+
+        '                    "column": 27,'+
+        '                    "line": 1'+
+        '                },'+
+        '                "type": "ContactExt",'+
+        '                "references": []'+
+        '            },'+
+        '            "variables": [{'+
+        '                "modifiers": [],'+
+        '                "name": "stdController",'+
+        '                "location": {'+
+        '                    "column": 52,'+
+        '                    "line": 9'+
+        '                },'+
+        '                "type": "StandardController",'+
+        '                "references": [{'+
+        '                    "column": 30,'+
+        '                    "line": 10'+
+        '                }, {'+
+        '                    "column": 35,'+
+        '                    "line": 11'+
+        '                }]'+
+        '            }],'+
+        '            "externalReferences": [],'+
+        '            "innerClasses": [],'+
+        '            "name": "ContactExt",'+
+        '            "constructors": [{'+
+        '                "parameters": [{'+
+        '                    "name": "stdController",'+
+        '                    "type": "StandardController"'+
+        '                }],'+
+        '                "visibility": "PUBLIC",'+
+        '                "modifiers": [],'+
+        '                "name": "ContactExt",'+
+        '                "location": {'+
+        '                    "column": 12,'+
+        '                    "line": 9'+
+        '                },'+
+        '                "type": null,'+
+        '                "references": []'+
+        '            }],'+
+        '            "key": "01pG0000003ZjfT",'+
+        '            "methods": [{'+
+        '                "returnType": "PageReference",'+
+        '                "parameters": [],'+
+        '                "visibility": "PUBLIC",'+
+        '                "modifiers": [],'+
+        '                "name": "saveContact",'+
+        '                "location": {'+
+        '                    "column": 26,'+
+        '                    "line": 14'+
+        '                },'+
+        '                "type": null,'+
+        '                "references": []'+
+        '            }, {'+
+        '                "returnType": "PageReference",'+
+        '                "parameters": [],'+
+        '                "visibility": "PUBLIC",'+
+        '                "modifiers": [],'+
+        '                "name": "cancelChanges",'+
+        '                "location": {'+
+        '                    "column": 26,'+
+        '                    "line": 19'+
+        '                },'+
+        '                "type": null,'+
+        '                "references": []'+
+        '            }],'+
+        '            "properties": [{'+
+        '                "visibility": "PRIVATE",'+
+        '                "modifiers": [],'+
+        '                "name": "myContact",'+
+        '                "location": {'+
+        '                    "column": 18,'+
+        '                    "line": 3'+
+        '                },'+
+        '                "type": "Contact",'+
+        '                "references": [{'+
+        '                    "column": 14,'+
+        '                    "line": 11'+
+        '                }]'+
+        '            }, {'+
+        '                "visibility": "PRIVATE",'+
+        '                "modifiers": [],'+
+        '                "name": "stdController",'+
+        '                "location": {'+
+        '                    "column": 42,'+
+        '                    "line": 4'+
+        '                },'+
+        '                "type": "StandardController",'+
+        '                "references": [{'+
+        '                    "column": 14,'+
+        '                    "line": 10'+
+        '                }]'+
+        '            }],'+
+        '            "id": "01pG0000003ZjfT",'+
+        '            "namespace": "timesheet"'+
+        '        }'+
+        '    }],'+
+        '    "queryLocator": null,'+
+        '    "entityTypeName": "ApexClassMember"'+
+        '}';
+
+        ToolingApi.queryResult obj = ToolingApi.parse(json);
+        System.assert(obj != null);
+        System.assertEquals(2,obj.records.size());
+
+        ToolingApi.ApexClassMember record = obj.records.get(0);
+        System.assertNotEquals(null,record.Id);
+        System.assertEquals('body',record.body);
+        System.assertEquals('content',record.content);
+        System.assertNotEquals(null,record.metadata);
+        System.assertNotEquals(null,record.symbolTable);
+        System.assertNotEquals(null,record.metadataContainerId);
+        System.assertNotEquals(null,record.metadata.apiVersion);
+        System.assertNotEquals(null,record.SymbolTable.tableDeclaration);
+        System.assertNotEquals(null,record.SymbolTable.properties);
+        System.assertNotEquals(null,record.SymbolTable.variables);
+        System.assertNotEquals(null,record.SymbolTable.Id);
+        System.assertNotEquals(null,record.SymbolTable.variables.get(0).name);
 	}
 }
